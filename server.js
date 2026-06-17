@@ -33,7 +33,7 @@ app.post('/api/submit', (req, res) => {
   const rec = {
     id: newId(), at: new Date().toISOString(),
     kind: d.type === 'profile' ? 'profile' : 'homework',
-    name: d.name || 'аноним', sphere: d.sphere || '', module: d.module || '',
+    name: d.name || 'аноним', sphere: d.sphere || '', module: d.module || '', homework: d.homework || '',
     type: d.type || 'text', content: d.content || '', fileName: d.fileName || ''
   };
   if (d.type === 'file' && d.fileData) {
@@ -86,6 +86,7 @@ h2{font-size:15px;text-transform:uppercase;letter-spacing:.12em;color:#F5C518;ma
 .row{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .who{font-weight:600}.meta{color:rgba(244,236,216,.5);font-size:12px;font-family:monospace}
 .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;border:1px solid #33301f;color:rgba(244,236,216,.7);margin-left:6px}
+.tag-hw{border-color:#F5C518;color:#F5C518;background:rgba(245,197,24,.08)}
 .content{margin-top:8px;white-space:pre-wrap;word-break:break-word;color:rgba(244,236,216,.85)}
 .dl{display:inline-block;margin-top:8px;background:#F5C518;color:#0F0E0C;text-decoration:none;font-weight:600;padding:8px 16px;border-radius:8px;font-size:13px}
 .empty{color:rgba(244,236,216,.4);font-size:14px}
@@ -102,7 +103,8 @@ function adminPage(profiles, hw, key) {
   const items = hw.length ? hw.map(r => {
     const dl = r.file ? `<a class="dl" href="/file/${r.id}?key=${encodeURIComponent(key)}">↓ Скачать ${esc(r.fileName) || 'файл'}</a>` : '';
     const body = r.type === 'link' ? `<a href="${esc(r.content)}" target="_blank">${esc(r.content)}</a>` : esc(r.content);
-    return `<div class="card"><div class="row"><span class="who">${esc(r.name)}<span class="tag">${esc(r.module)}</span><span class="tag">${esc(r.type)}</span></span><span class="meta">${esc(r.at.slice(0, 16).replace('T', ' '))}</span></div>${body ? `<div class="content">${body}</div>` : ''}${dl}</div>`;
+    const hwTag = r.homework ? `<span class="tag tag-hw">${esc(r.homework)}</span>` : '';
+    return `<div class="card"><div class="row"><span class="who">${esc(r.name)}<span class="tag">${esc(r.module)}</span>${hwTag}<span class="tag">${esc(r.type)}</span></span><span class="meta">${esc(r.at.slice(0, 16).replace('T', ' '))}</span></div>${body ? `<div class="content">${body}</div>` : ''}${dl}</div>`;
   }).join('') : '<p class="empty">Домашних заданий пока нет.</p>';
   return shell(`<h1>Фокус ИИ · Домашние задания</h1><p class="sub">Всего работ: ${hw.length} · участников: ${profiles.length}</p>
   <h2>Участники</h2>${prof}<h2>Работы</h2>${items}`);
