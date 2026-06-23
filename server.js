@@ -45,6 +45,14 @@ app.post('/api/submit', (req, res) => {
     } catch (e) { rec.error = 'file save failed'; }
   }
   const arr = load(); arr.push(rec); save(arr);
+  // зеркалим на Google Drive через Apps Script (если настроен DRIVE_WEBHOOK)
+  if (process.env.DRIVE_WEBHOOK) {
+    try {
+      fetch(process.env.DRIVE_WEBHOOK, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d)
+      }).catch(() => {});
+    } catch (e) {}
+  }
   res.json({ ok: true });
 });
 
