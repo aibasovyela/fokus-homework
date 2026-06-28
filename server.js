@@ -104,8 +104,12 @@ button{background:#F5C518;color:#0F0E0C;border:none;font-weight:600;padding:12px
 .people{background:#17150F;border:1px solid #33301f;border-radius:12px;padding:14px 16px;display:flex;flex-wrap:wrap;gap:8px}
 .person{font-size:13px;background:#211E16;border:1px solid #33301f;border-radius:20px;padding:5px 12px;white-space:nowrap}
 .person b{color:#F4ECD8;font-weight:600}.person span{color:rgba(244,236,216,.5)}
-.day{font-family:monospace;font-size:13px;letter-spacing:.04em;color:#F5C518;margin:26px 0 10px;padding-bottom:7px;border-bottom:1px solid #33301f}
-.day .cnt{color:rgba(244,236,216,.45);margin-left:8px}
+.daypick{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+.dchip{background:#17150F;border:1px solid #33301f;color:rgba(244,236,216,.7);border-radius:20px;padding:8px 15px;font-size:13px;cursor:pointer;margin:0;font-weight:500;transition:all .15s}
+.dchip:hover{border-color:#F5C518}
+.dchip.active{background:#F5C518;color:#0F0E0C;border-color:#F5C518;font-weight:700}
+.dchip b{font-weight:700;opacity:.6;margin-left:4px}
+.dchip.active b{opacity:.8}
 </style></head><body><div class="wrap">${body}</div></body></html>`;
 }
 function loginPage() {
@@ -136,10 +140,19 @@ function adminPage(profiles, hw, key) {
     const hwTag = r.homework ? `<span class="tag tag-hw">${esc(r.homework)}</span>` : '';
     return `<div class="card"><div class="row"><span class="who">${esc(r.name)}<span class="tag">${esc(r.module)}</span>${hwTag}<span class="tag">${esc(r.type)}</span></span><span class="meta">${esc(r.at.slice(11, 16))}</span></div>${body ? `<div class="content">${body}</div>` : ''}${dl}</div>`;
   };
-  const works = days.length
-    ? days.map(d => `<div class="day">${dayLabel(d)}<span class="cnt">· ${byDay[d].length} работ</span></div>${byDay[d].map(card).join('')}`).join('')
-    : '<p class="empty">Домашних заданий пока нет.</p>';
+  let works;
+  if (!days.length) {
+    works = '<p class="empty">Домашних заданий пока нет.</p>';
+  } else {
+    const chips = `<div class="daypick">` +
+      `<button class="dchip" data-day="all">Все дни <b>${hw.length}</b></button>` +
+      days.map((d, i) => `<button class="dchip${i === 0 ? ' active' : ''}" data-day="${d}">${dayLabel(d)} <b>${byDay[d].length}</b></button>`).join('') +
+      `</div>`;
+    const groups = days.map((d, i) => `<div class="daygroup" data-day="${d}"${i === 0 ? '' : ' hidden'}>${byDay[d].map(card).join('')}</div>`).join('');
+    const js = `<script>(function(){var ch=document.querySelectorAll('.dchip'),gr=document.querySelectorAll('.daygroup');ch.forEach(function(c){c.addEventListener('click',function(){ch.forEach(function(x){x.classList.remove('active')});c.classList.add('active');var d=c.dataset.day;gr.forEach(function(g){g.hidden=(d!=='all'&&g.dataset.day!==d)});});});})();</script>`;
+    works = chips + groups + js;
+  }
 
   return shell(`<h1>Фокус ИИ · Домашние задания</h1><p class="sub">Всего работ: ${hw.length} · участников: ${names.length}</p>
-  <h2>Участники</h2>${people}<h2>Работы по датам</h2>${works}`);
+  <h2>Участники</h2>${people}<h2>Работы — выбери день сдачи</h2>${works}`);
 }
