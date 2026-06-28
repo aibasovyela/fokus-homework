@@ -101,20 +101,45 @@ h2{font-size:15px;text-transform:uppercase;letter-spacing:.12em;color:#F5C518;ma
 .empty{color:rgba(244,236,216,.4);font-size:14px}
 input{background:#17150F;border:1px solid #33301f;color:#F4ECD8;padding:12px 14px;border-radius:10px;font-size:15px;width:100%;max-width:320px}
 button{background:#F5C518;color:#0F0E0C;border:none;font-weight:600;padding:12px 24px;border-radius:10px;font-size:15px;cursor:pointer;margin-top:12px}
+.people{background:#17150F;border:1px solid #33301f;border-radius:12px;padding:14px 16px;display:flex;flex-wrap:wrap;gap:8px}
+.person{font-size:13px;background:#211E16;border:1px solid #33301f;border-radius:20px;padding:5px 12px;white-space:nowrap}
+.person b{color:#F4ECD8;font-weight:600}.person span{color:rgba(244,236,216,.5)}
+.day{font-family:monospace;font-size:13px;letter-spacing:.04em;color:#F5C518;margin:26px 0 10px;padding-bottom:7px;border-bottom:1px solid #33301f}
+.day .cnt{color:rgba(244,236,216,.45);margin-left:8px}
 </style></head><body><div class="wrap">${body}</div></body></html>`;
 }
 function loginPage() {
   return shell(`<h1>Фокус ИИ · Куратор</h1><p class="sub">Введите пароль доступа.</p>
   <form method="get" action="/admin"><input name="key" type="password" placeholder="Пароль куратора" autofocus><br><button>Войти</button></form>`);
 }
+const MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+function dayLabel(iso) {            // 'YYYY-MM-DD' → '14 июня 2026'
+  const [y, m, d] = iso.slice(0, 10).split('-');
+  return parseInt(d, 10) + ' ' + (MONTHS[parseInt(m, 10) - 1] || m) + ' ' + y;
+}
 function adminPage(profiles, hw, key) {
-  const prof = profiles.length ? profiles.map(p => `<div class="card"><div class="row"><span class="who">${esc(p.name)}</span><span class="meta">${esc(p.at.slice(0, 16).replace('T', ' '))}</span></div><div class="content">Сфера: ${esc(p.sphere) || '—'}</div></div>`).join('') : '<p class="empty">Пока никто не заполнил профиль.</p>';
-  const items = hw.length ? hw.map(r => {
+  // последний профиль на участника (по имени)
+  const seen = {};
+  profiles.forEach(p => { if (!seen[p.name]) seen[p.name] = p.sphere; });
+  const names = Object.keys(seen);
+  const people = names.length
+    ? `<div class="people">${names.map(n => `<span class="person"><b>${esc(n)}</b> <span>· ${esc(seen[n]) || '—'}</span></span>`).join('')}</div>`
+    : '<p class="empty">Пока никто не заполнил профиль.</p>';
+
+  // домашки по дате сдачи (новые сверху)
+  const byDay = {};
+  hw.forEach(r => { const k = r.at.slice(0, 10); (byDay[k] = byDay[k] || []).push(r); });
+  const days = Object.keys(byDay).sort().reverse();
+  const card = r => {
     const dl = r.file ? `<a class="dl" href="/file/${r.id}?key=${encodeURIComponent(key)}">↓ Скачать ${esc(r.fileName) || 'файл'}</a>` : '';
     const body = r.type === 'link' ? `<a href="${esc(r.content)}" target="_blank">${esc(r.content)}</a>` : esc(r.content);
     const hwTag = r.homework ? `<span class="tag tag-hw">${esc(r.homework)}</span>` : '';
-    return `<div class="card"><div class="row"><span class="who">${esc(r.name)}<span class="tag">${esc(r.module)}</span>${hwTag}<span class="tag">${esc(r.type)}</span></span><span class="meta">${esc(r.at.slice(0, 16).replace('T', ' '))}</span></div>${body ? `<div class="content">${body}</div>` : ''}${dl}</div>`;
-  }).join('') : '<p class="empty">Домашних заданий пока нет.</p>';
-  return shell(`<h1>Фокус ИИ · Домашние задания</h1><p class="sub">Всего работ: ${hw.length} · участников: ${profiles.length}</p>
-  <h2>Участники</h2>${prof}<h2>Работы</h2>${items}`);
+    return `<div class="card"><div class="row"><span class="who">${esc(r.name)}<span class="tag">${esc(r.module)}</span>${hwTag}<span class="tag">${esc(r.type)}</span></span><span class="meta">${esc(r.at.slice(11, 16))}</span></div>${body ? `<div class="content">${body}</div>` : ''}${dl}</div>`;
+  };
+  const works = days.length
+    ? days.map(d => `<div class="day">${dayLabel(d)}<span class="cnt">· ${byDay[d].length} работ</span></div>${byDay[d].map(card).join('')}`).join('')
+    : '<p class="empty">Домашних заданий пока нет.</p>';
+
+  return shell(`<h1>Фокус ИИ · Домашние задания</h1><p class="sub">Всего работ: ${hw.length} · участников: ${names.length}</p>
+  <h2>Участники</h2>${people}<h2>Работы по датам</h2>${works}`);
 }
